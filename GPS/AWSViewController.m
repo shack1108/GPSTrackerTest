@@ -18,6 +18,7 @@
 - (IBAction)pauseWorkout:(id)sender;
 @property (weak, nonatomic) IBOutlet UIButton *startWorkoutButton;
 @property (weak, nonatomic) IBOutlet UIButton *pauseWorkoutButton;
+@property (weak, nonatomic) IBOutlet UILabel *workoutTime;
 
 
 @end
@@ -35,6 +36,12 @@
     CLLocation *restartingPausedLocation;
     BOOL workoutPaused;
     CLLocationDistance distancePausedTraveled;
+    NSDate *workoutStartDate;
+    NSDate *currentDate;
+    NSDate *datePaused;
+    NSTimeInterval secondsSinceWorkoutStart;
+    NSTimeInterval secondsPaused;
+    NSTimeInterval secondsSinceWorkoutStartWhenPaused;
 }
 
 - (void)viewDidLoad
@@ -50,8 +57,10 @@
     [_distance setText:@"N/A"];
     [_startWorkoutButton setTitle:@"Start workout" forState:UIControlStateNormal];
     [_pauseWorkoutButton setTitle:@"" forState:UIControlStateNormal];
+    [_workoutTime setText:@"N/A"];
     
     workoutPaused = NO;
+    secondsPaused = 0;
     
 }
 
@@ -71,6 +80,7 @@
             [manager startUpdatingLocation];
             [sender setTitle:@"Stop workout" forState:UIControlStateNormal];
             [_pauseWorkoutButton setTitle:@"Pause workout" forState:UIControlStateNormal];
+            workoutStartDate = [NSDate date];
         } else {
             [manager stopUpdatingLocation];
             [sender setTitle:@"Start workout" forState:UIControlStateNormal];
@@ -90,12 +100,48 @@
     if ([buttonName isEqualToString:@"Pause workout"])
     {
         [manager stopUpdatingLocation];
+        datePaused = [NSDate date];
+        secondsSinceWorkoutStartWhenPaused = secondsSinceWorkoutStart;
         workoutPaused = YES;
         self.speed.text = @"Workout Paused";
         self.longitude.text = @"Workout Paused";
         self.latitude.text = @"Workout Paused";
         [sender setTitle:@"Resume workout" forState:UIControlStateNormal];
+        
+        //displaying the time
+        
+        //are we talking two-digit hours here (that's a long workout...) ?
+        if (secondsSinceWorkoutStartWhenPaused/36000 >= 1) {
+            NSInteger ti = (NSInteger)secondsSinceWorkoutStartWhenPaused;
+            NSInteger seconds = ti % 60;
+            NSInteger minutes = (ti / 60) % 60;
+            NSInteger hours = (ti / 3600);
+            _workoutTime.text = [NSString stringWithFormat:@"%02ld:%02ld:%02ld", (long)hours, (long)minutes, (long)seconds];
+        } else if (secondsSinceWorkoutStartWhenPaused/3600 >= 1) {
+            NSInteger ti = (NSInteger)secondsSinceWorkoutStartWhenPaused;
+            NSInteger seconds = ti % 60;
+            NSInteger minutes = (ti / 60) % 60;
+            NSInteger hours = (ti / 3600);
+            _workoutTime.text = [NSString stringWithFormat:@"%1ld:%02ld:%02ld", (long)hours, (long)minutes, (long)seconds];
+        } else if (secondsSinceWorkoutStartWhenPaused/600 >= 1) { //are we talking two-digit minutes?
+            NSInteger ti = (NSInteger)secondsSinceWorkoutStartWhenPaused;
+            NSInteger seconds = ti % 60;
+            NSInteger minutes = (ti / 60) % 60;
+            _workoutTime.text = [NSString stringWithFormat:@"%02ld:%02ld", (long)minutes, (long)seconds];
+        } else if (secondsSinceWorkoutStartWhenPaused/60 >= 1) { //are we talking one-digit minutes?
+            NSInteger ti = (NSInteger)secondsSinceWorkoutStartWhenPaused;
+            NSInteger seconds = ti % 60;
+            NSInteger minutes = (ti / 60) % 60;
+            _workoutTime.text = [NSString stringWithFormat:@"%1ld:%02ld", (long)minutes, (long)seconds];
+        } else if (secondsSinceWorkoutStartWhenPaused > 0) { // are we talking seconds?
+            NSInteger ti = (NSInteger)secondsSinceWorkoutStartWhenPaused;
+            NSInteger seconds = ti % 60;
+            _workoutTime.text = [NSString stringWithFormat:@"0:%02ld", (long)seconds];
+        }
+        
+        
     } else {
+        secondsPaused = [[NSDate date] timeIntervalSinceDate:datePaused] + secondsPaused;
         [manager startUpdatingLocation];
         [sender setTitle:@"Pause workout" forState:UIControlStateNormal];
     }
@@ -114,6 +160,37 @@
     
     CLLocation *currentLocation;
     CLLocation *pastLocation;
+    
+    secondsSinceWorkoutStart = [[NSDate date] timeIntervalSinceDate:[workoutStartDate dateByAddingTimeInterval:secondsPaused]];
+    
+    //are we talking two-digit hours here (that's a long workout...) ?
+    if (secondsSinceWorkoutStart/36000 >= 1) {
+        NSInteger ti = (NSInteger)secondsSinceWorkoutStart;
+        NSInteger seconds = ti % 60;
+        NSInteger minutes = (ti / 60) % 60;
+        NSInteger hours = (ti / 3600);
+        _workoutTime.text = [NSString stringWithFormat:@"%02ld:%02ld:%02ld", (long)hours, (long)minutes, (long)seconds];
+    } else if (secondsSinceWorkoutStart/3600 >= 1) {
+        NSInteger ti = (NSInteger)secondsSinceWorkoutStart;
+        NSInteger seconds = ti % 60;
+        NSInteger minutes = (ti / 60) % 60;
+        NSInteger hours = (ti / 3600);
+        _workoutTime.text = [NSString stringWithFormat:@"%1ld:%02ld:%02ld", (long)hours, (long)minutes, (long)seconds];
+    } else if (secondsSinceWorkoutStart/600 >= 1) { //are we talking two-digit minutes?
+        NSInteger ti = (NSInteger)secondsSinceWorkoutStart;
+        NSInteger seconds = ti % 60;
+        NSInteger minutes = (ti / 60) % 60;
+        _workoutTime.text = [NSString stringWithFormat:@"%02ld:%02ld", (long)minutes, (long)seconds];
+    } else if (secondsSinceWorkoutStart/60 >= 1) { //are we talking one-digit minutes?
+        NSInteger ti = (NSInteger)secondsSinceWorkoutStart;
+        NSInteger seconds = ti % 60;
+        NSInteger minutes = (ti / 60) % 60;
+        _workoutTime.text = [NSString stringWithFormat:@"%1ld:%02ld", (long)minutes, (long)seconds];
+    } else if (secondsSinceWorkoutStart > 0) { // are we talking seconds?
+        NSInteger ti = (NSInteger)secondsSinceWorkoutStart;
+        NSInteger seconds = ti % 60;
+        _workoutTime.text = [NSString stringWithFormat:@"0:%02ld", (long)seconds];
+    }
     
     if (workoutPaused == NO) {
         currentLocation = newLocation;
